@@ -22,4 +22,5 @@
 |    [concurrents-promise-all](./setInterval/index.js)     |
 |    [concurrents-promise-all](./concurrents-promise-all/index.js)     |
 |    [console-in-loop5](./console-in-loop5/index.js)     |
+|    [my-new](./my-new/index.js)     |
 
