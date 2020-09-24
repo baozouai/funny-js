@@ -3,7 +3,7 @@
  * @Author: Moriaty
  * @Date: 2020-09-24 09:02:33
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-09-24 13:10:13
+ * @LastEditTime: 2020-09-24 14:06:59
 -->
 # 实现一些有趣的JS代码
 
@@ -31,4 +31,5 @@
 |    [console-in-loop5(每隔1秒打印)](./console-in-loop5/index.js)     |
 |    [my-new(模拟new)](./my-new/index.js)     |
 |    [test-useState(模拟useState)](./test-useState/index.js)     |
+|    [继承(原型链继承)](./inherit/prototype-chain.js)     |
 
