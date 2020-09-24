@@ -12,3 +12,14 @@ function throttle(fn, timeout) {
     }
   }
 }
+
+function throttle1(fn, timeout) {
+  const now = Date.now;
+  let startTime = now();
+  return function () {
+    if (now() - startTime >= timeout) {
+      startTime = now();
+      fn.apply(this, arguments);
+    }
+  }
+}
