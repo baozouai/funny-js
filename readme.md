@@ -3,7 +3,7 @@
  * @Author: Moriaty
  * @Date: 2020-09-24 09:02:33
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-09-24 16:26:48
+ * @LastEditTime: 2020-09-24 16:50:46
 -->
 # 实现一些有趣的JS代码
 
@@ -33,4 +33,5 @@
 |    [test-useState(模拟useState)](./test-useState/index.js)     |
 |    [继承(原型链继承)](./inherit/prototype-chain.js)     |
 |    [继承(构造函数继承)](./inherit/constructor-inherit.js)     |
+|    [继承(组合式继承)](./inherit/combination-inherit.js)     |
 
