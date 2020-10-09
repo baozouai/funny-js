@@ -3,7 +3,7 @@
  * @Author: Moriaty
  * @Date: 2020-09-21 22:31:52
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-09-24 09:19:06
+ * @LastEditTime: 2020-09-25 16:11:23
  */
 /**
  * @description: 版本1
@@ -33,7 +33,7 @@ test(obj);
 /**
  * @description: 版本2
  */
-function deepClone1(obj) {
+function deepClone(obj) {
   function isObject(obj) {
     return obj !== null && ['object', 'function'].includes(typeof obj);
   }
