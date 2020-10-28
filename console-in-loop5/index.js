@@ -21,15 +21,15 @@ function method1() {
 
 // method1();
 function method2() {
-  const sleep = times => new Promise(resolve => setTimeout(resolve, times));
-
-  (async () => {
-    for (var i = 0; i < 5; ++i) {
-      await sleep(1000);
-      console.log(new Date().toLocaleTimeString().replace(/[A-Z]/g, '') + '=======> ' + i);
+  const sleep = () => new Promise(resolve => setTimeout(resolve, 1000))
+  async function log(i) {
+    await sleep();
+    console.log(`${new Date().toLocaleTimeString().replace(/[A-Z]/g, '')} =====> ${i}`);
+  }
+  (async() => {
+    for (var i = 0; i < 6; ++i) {
+      await log(i);
     }
-    await sleep(1000);
-    console.log(new Date().toLocaleTimeString().replace(/[A-Z]/g, '') + '=======> ' + i);
   })()
 }
 

@@ -3,12 +3,12 @@
  * @Author: Moriaty
  * @Date: 2020-09-23 22:19:23
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-10-09 23:38:12
+ * @LastEditTime: 2020-10-26 21:16:15
  */
 function _const(prop, value) {
   const desc = {
     configurable: false,
-    writtable: false,
+    writable: false,
     enumerable: false,
     get() {
       return value;
