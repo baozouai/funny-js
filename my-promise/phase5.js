@@ -1,9 +1,9 @@
 /*
- * @Description: 从0实现完整Promise 阶段四： 增加catch、finally、resolve、reject、all、race方法
+ * @Description: 从0实现完整Promise 阶段五： 增加catch、finally、resolve、reject、all、race方法
  * @Author: Moriaty
  * @Date: 2020-09-20 08:23:42
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-09-22 17:41:06
+ * @LastEditTime: 2021-04-07 21:29:00
  */
 const Constants = require('./constants');
 
@@ -146,19 +146,17 @@ class MyPromise {
     }))
   }
   // catch 方法返回一个promise，并处理拒绝的情况，与调用Promise.then(undefined, rejectFn)相同
-  static
-  catch (rejectFn) {
+  static catch (rejectFn) {
     return this.then(undefined, rejectFn);
   }
   /**
    * finally 返回一个promise，无论结果resolve或reject都会执行callback，
-   * 在finally之后还可以继续then，并将只原封不动传给后面的then
+   * 在finally之后还可以继续then，并将值原封不动传给后面的then
    */
-  static
-  finally(callback) {
+  static finally(callback) {
     return this.then(
       value => MyPromise.resolve(callback()).then(() => value),
-      reason => MyPromise.resolve(callback).then(() => {
+      reason => MyPromise.resolve(callback()).then(() => {
         throw reason
       })
     )
@@ -175,8 +173,8 @@ class MyPromise {
   /**
    *  返回带有拒绝原因的Promise 
    */
-  static reject(value) {
-    return this.then((_, reject) => reject(value));
+  static reject(reason) {
+    return new MyPromise((_, reject) => reject(reason));
   }
   /**
    * promisesArr的每个结果放入result，当任何一个出错则直接reject
@@ -212,12 +210,13 @@ const p = new MyPromise(resolve => {
     resolve(1);
     console.log('p1')
   })
-  // .then()
+  .then()
   .then(res => {
     debugger
     console.log(res);
     return 2;
   })
+  .then()
   .then(res => {
     debugger
     console.log(res);
@@ -228,7 +227,24 @@ const p = new MyPromise(resolve => {
     console.log(res);
   })
 
+// MyPromise.resolve().then(() => {
+//     console.log('-------------'+ 0 + '-------------');
+//     return MyPromise.resolve(4);
+// }).then((res) => {
+//     console.log('-------------' + res + '-------------')
+// })
 
+// MyPromise.resolve().then(() => {
+//     console.log('-------------' + 1 + '-------------');
+// }).then(() => {
+//     console.log('-------------' + 2 + '-------------');
+// }).then(() => {
+//     console.log('-------------' + 3 + '-------------');
+// }).then(() => {
+//     console.log('-------------' + 5 + '-------------');
+// }).then(() =>{
+//     console.log('-------------' + 6 + '-------------');
+// })
 // const p1 = new MyPromise(resolve => {
 //   debugger
 //   setTimeout(() => {
