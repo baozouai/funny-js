@@ -3,10 +3,10 @@
  * @Author: Moriaty
  * @Date: 2020-09-20 08:23:42
  * @Last modified by: Moriaty
- * @LastEditTime: 2021-04-07 21:29:00
+ * @LastEditTime: 2021-08-22 12:28:24
  */
 const Constants = require('./constants');
-
+const {resolvePromise, isIterable} = require('./util') 
 const {
   PENDING,
   FULL_FILLED,
@@ -27,14 +27,12 @@ class MyPromise {
     this._rejectQueue = [];
     this.value = undefined;
     this.count = `【 promise ${count++} 】`;
-    console.log(`${this.count}new 了`);
     debugger
     try {
       executor(this._resolve.bind(this), this._reject.bind(this));
     } catch (e) {
       this._reject.bind(this, e);
     }
-    console.log(`${this.count} 完成executor`)
   }
   // ②触发通知
   _resolve(val) {
@@ -42,9 +40,7 @@ class MyPromise {
     if (this._status !== PENDING) return;
     const run = () => {
       this._value = val;
-      console.log(`${this.count}开始resolve， this._value = ${this._value}`)
       this._status = FULL_FILLED;
-      console.log(`${this.count}清空列表， this._resolveQueue队列有 ${this._resolveQueue.length} 个fn`);
       this.flush(val, this._resolveQueue);
     };
     /**
@@ -52,16 +48,14 @@ class MyPromise {
      *  不放入宏任务队列前(即不加setTimeout)，执行顺序：new Promise -> resolve/reject执行回调 -> then()收集回调
      *  加了之后，执行顺序：new Promise -> then()收集回调 -> resolve/reject执行回调
      */
-    setTimeout(run);
+    run();
   }
   // ②触发通知
   _reject(reason) {
     if (this._status !== PENDING) return;
     const run = () => {
       this._value = reason;
-      console.log(`${this.count}开始reject, this._value = ${this._value}`)
       this._status = REJECTED;
-      console.log(`${this.count}清空列表， this._rejectQueue队列有 ${this._rejectQueue.length} 个fn`);
       this.flush(reason, this._rejectQueue);
     };
     /**
@@ -69,7 +63,7 @@ class MyPromise {
      *  不放入宏任务队列前(即不加setTimeout)，执行顺序：new Promise -> resolve/reject执行回调 -> then()收集回调
      *  加了之后，执行顺序：new Promise -> then()收集回调 -> resolve/reject执行回调
      */
-    setTimeout(run);
+    run();
   }
   // ③取出依赖执行
   flush(val, queue) {
@@ -80,72 +74,59 @@ class MyPromise {
     }
   }
   then(resolveFn, rejectFn) {
-    console.log(`${this.count}开始then`)
     debugger
     // 为了链式调用，要返回一个promise
-    console.log(`${this.count}return 了【 promise ${count} 】`);
     let newPromise;
     return (newPromise = new MyPromise((resolve, reject) => {
       debugger
       // 将resolve，reject 包装一下，为了能够获取回调返回值来分类讨论
       const fullFillFn = val => {
-        try {
-          debugger
-          console.log(`${this.count}准备执行resolveFn`)
-          // 值传透：如果then的resolve不是function，则将值进一步传递，否则会出现链式调用中断
-          resolveFn = typeof resolveFn === 'function' ? resolveFn : value => value;
-          const x = resolveFn(val);
-          if (x === newPromise) {
-            throw new Error('then can not circular reference');
+        queueMicrotask(() => {
+          try {
+            debugger
+            // 值传透：如果then的resolve不是function，则将值进一步传递，否则会出现链式调用中断
+            resolveFn = typeof resolveFn === 'function' ? resolveFn : value => value;
+            const x = resolveFn(val);
+            resolvePromise(newPromise, x, resolve, reject);
+          } catch (error) {
+            reject(error);
           }
-          console.log(`${this.count} resolveFn的值x = ${x}`)
-          console.log(`${this.count} x是Promise吗 ？ ${x instanceof MyPromise ? '是，继续将(resolve, reject)放入x的then' : '否,直接resolve(x)'}`)
-          // 如果回调返回值为promise继续执行then，等待状态变更，否则直接resolve
-          x instanceof MyPromise ? x.then(resolve, reject) : resolve(x);
-        } catch (error) {
-          reject(error);
-        }
+        })
       }
       // reject同理
       const rejectedFn = error => {
-        try {
-          debugger
-          console.log(`${this.count}准备执行rejectFn`);
-          // 值传透：如果then的reject不是function，则将值进一步传递，否则会出现链式调用中断
-          rejectFn = typeof rejectFn === 'function' ? rejectFn : reason => {
-            throw new Error(reason instanceof Error ? reason.message : reason);
-          };
-          const x = rejectFn(error);
-          if (x === newPromise) {
-            throw new Error('then can not circular reference');
+        queueMicrotask(() => {
+          try {
+            debugger
+            // 值传透：如果then的reject不是function，则将值进一步传递，否则会出现链式调用中断
+            rejectFn = typeof rejectFn === 'function' ? rejectFn : reason => {
+              throw reason;
+            };
+            const x = rejectFn(error);
+            resolvePromise(newPromise, x, resolve, reject);
+          } catch (error) {
+            reject(error)
           }
-          console.log(`${this.count} rejectFn的x = ${x}`)
-          console.log(`${this.count} x是Promise吗 ？ ${x instanceof MyPromise ? '是，继续将(resolve, reject)放入x的then' : '否,直接reject(x)'}`)
-          x instanceof MyPromise ? x.then(resolve, reject) : reject(x);
-        } catch (error) {
-          reject(error)
-        }
+        })
       }
       switch (this._status) {
         // 如果状态为等待，则将then回调push进resolve/reject执行队列中等待执行
         case PENDING:
-          console.log(`${this.count} 开始将then回调push进resolve/reject执行队列中等待执行`)
           this._resolveQueue.push(fullFillFn);
           this._rejectQueue.push(rejectedFn);
           break;
           // 当状态已变更，直接执行回调
         case FULL_FILLED:
-          console.log(`${this.count}状态已变更为FULL_FILLED 将this._value = ${this._value}放入fullFillFn执行`)
           fullFillFn(this._value);
           break;
         case REJECTED:
-          console.log(`${this.count}状态已变更为REJECTED 将this._value = ${this._value}放入rejectedFn执行`)
           rejectedFn(this._value);
           break;
       }
     }))
   }
   // catch 方法返回一个promise，并处理拒绝的情况，与调用Promise.then(undefined, rejectFn)相同
+  
   static catch (rejectFn) {
     return this.then(undefined, rejectFn);
   }
@@ -153,7 +134,8 @@ class MyPromise {
    * finally 返回一个promise，无论结果resolve或reject都会执行callback，
    * 在finally之后还可以继续then，并将值原封不动传给后面的then
    */
-  static finally(callback) {
+  
+   static finally(callback) {
     return this.then(
       value => MyPromise.resolve(callback()).then(() => value),
       reason => MyPromise.resolve(callback()).then(() => {
@@ -179,18 +161,29 @@ class MyPromise {
   /**
    * promisesArr的每个结果放入result，当任何一个出错则直接reject
    */
-  static all(promisesArr) {
+  static all(promises) {
     return new MyPromise((resolve, reject) => {
+      if (!isIterable(promises)) {
+        const preReason = promises === undefined ? `${promises}` : `${typeof promises} ${promises}`
+        return reject(new TypeError(`${preReason} is not iterable (cannot read property Symbol(Symbol.iterator))`))
+      }
+      if (promises.length === 0) return resolve([])
       const result = [];
-      promisesArr.forRach((promise, i) => {
-        // MyPromise.resolve用于处理非Promise的情况
-        MyPromise.resolve(promise).then(value => {
-          result.push(value);
-          if (i === promisesArr.length - 1) {
-            resolve(result);
-          }
-        }, reject)
-      })
+      let index = 0
+      try {
+        promises.forEach((promise, i) => {
+          // MyPromise.resolve用于处理非Promise的情况
+          MyPromise.resolve(promise).then(value => {
+            result[i] = value;
+            index++
+            if (index === promises.length) {
+              resolve(result);
+            }
+          }, reject)
+        })
+      } catch (e) {
+        reject(e)
+      }
     })
   }
   /**
@@ -198,6 +191,11 @@ class MyPromise {
    */
   static race(promiseArr) {
     return new MyPromise((resolve, reject) => {
+      if (!isIterable(promises)) {
+        const preReason = promises === undefined ? `${promises}` : `${typeof promises} ${promises}`
+        return reject(new TypeError(`${preReason} is not iterable (cannot read property Symbol(Symbol.iterator))`))
+      }
+      if (promises.length === 0) return
       promiseArr.forRach(promise => {
         MyPromise.resolve(promise).then(resolve, reject);
       })
@@ -208,42 +206,31 @@ class MyPromise {
 const p = new MyPromise(resolve => {
     debugger
     resolve(1);
-    console.log('p1')
   })
   .then()
   .then(res => {
     debugger
-    console.log(res);
     return 2;
   })
   .then()
   .then(res => {
     debugger
-    console.log(res);
     return 3;
   })
   .then(res => {
     debugger
-    console.log(res);
   })
 
 // MyPromise.resolve().then(() => {
-//     console.log('-------------'+ 0 + '-------------');
 //     return MyPromise.resolve(4);
 // }).then((res) => {
-//     console.log('-------------' + res + '-------------')
 // })
 
 // MyPromise.resolve().then(() => {
-//     console.log('-------------' + 1 + '-------------');
 // }).then(() => {
-//     console.log('-------------' + 2 + '-------------');
 // }).then(() => {
-//     console.log('-------------' + 3 + '-------------');
 // }).then(() => {
-//     console.log('-------------' + 5 + '-------------');
 // }).then(() =>{
-//     console.log('-------------' + 6 + '-------------');
 // })
 // const p1 = new MyPromise(resolve => {
 //   debugger
@@ -254,13 +241,23 @@ const p = new MyPromise(resolve => {
 // });
 // p1.
 //   then(res => {
-//     console.log(res);
 //     return 21;
 //   })
 //   .then(res => {
-//     console.log(res);
 //     return 31;
 //   })
 //   .then(res => {
-//     console.log(res);
 //   })
+
+
+MyPromise.defer = MyPromise.deferred = function () {
+  let defer = {}
+  defer.promise = new MyPromise((resolve, reject) => {
+    defer.resolve = resolve
+    defer.reject = reject
+  })
+  return defer
+}
+try {
+  module.exports = MyPromise
+} catch (e) {}

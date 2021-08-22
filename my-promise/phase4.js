@@ -3,10 +3,10 @@
  * @Author: Moriaty
  * @Date: 2020-09-20 08:23:42
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-09-20 08:43:38
+ * @LastEditTime: 2021-08-22 12:32:00
  */
 const Constants = require('./constants');
-
+const { resolvePromise } = require('./util')
 const {
   PENDING,
   FULL_FILLED,
@@ -43,12 +43,7 @@ class MyPromise {
       console.log(`${this.count}清空列表， this._resolveQueue队列有 ${this._resolveQueue.length} 个fn`);
       this.flush(val, this._resolveQueue);
     };
-    /**
-     *  为了让resolve的执行在then收集回调之后，将其放入宏任务队列
-     *  不放入宏任务队列前(即不加setTimeout)，执行顺序：new Promise -> resolve/reject执行回调 -> then()收集回调
-     *  加了之后，执行顺序：new Promise -> then()收集回调 -> resolve/reject执行回调
-     */
-    setTimeout(run);
+     run();
   }
   // ②触发通知
   _reject(reason) {
@@ -60,12 +55,7 @@ class MyPromise {
       console.log(`${this.count}清空列表， this._rejectQueue队列有 ${this._rejectQueue.length} 个fn`);
       this.flush(reason, this._rejectQueue);
     };
-    /**
-     *  为了让reject的执行在then收集回调之后，将其放入宏任务队列
-     *  不放入宏任务队列前(即不加setTimeout)，执行顺序：new Promise -> resolve/reject执行回调 -> then()收集回调
-     *  加了之后，执行顺序：new Promise -> then()收集回调 -> resolve/reject执行回调
-     */
-    setTimeout(run);
+     run();
   }
   // ③取出依赖执行
   flush(val, queue) {
@@ -80,37 +70,39 @@ class MyPromise {
     debugger
     // 为了链式调用，要返回一个promise
     console.log(`${this.count}return 了【 promise ${count} 】`);
-    return new MyPromise((resolve, reject) => {
+    let newPromise = new MyPromise((resolve, reject) => {
       debugger
       // 将resolve，reject 包装一下，为了能够获取回调返回值来分类讨论
-      const fullFillFn = val => {
+      const fullFillFn = () => {
+       queueMicrotask(() => {
         try {
           debugger
           console.log(`${this.count}准备执行resolveFn`)
           // 值传透：如果then的resolve不是function，则将值进一步传递，否则会出现链式调用中断
           resolveFn = typeof resolveFn === 'function' ? resolveFn: value => value;
-          const x = resolveFn(val);
+          const x = resolveFn(this._value);
           console.log(`${this.count} resolveFn的值x = ${x}`)
           console.log(`${this.count} x是Promise吗 ？ ${x instanceof MyPromise ? '是，继续将(resolve, reject)放入x的then' : '否,直接resolve(x)'}`)
           // 如果回调返回值为promise继续执行then，等待状态变更，否则直接resolve
-          x instanceof MyPromise ? x.then(resolve, reject) : resolve(x);
+          resolvePromise(newPromise, x, resolve, reject)
         } catch (error) {
           reject(error);
         }
+       })
       }
       // reject同理
-      const rejectedFn = error => {
+      const rejectedFn = () => {
         try {
           debugger
           console.log(`${this.count}准备执行rejectFn`);
           // 值传透：如果then的reject不是function，则将值进一步传递，否则会出现链式调用中断
           rejectFn = typeof rejectFn === 'function' ? rejectFn: reason => {
-            throw new Error(reason instanceof Error ? reason.message: reason);
+            throw reason;
           };
-          const x = rejectFn(error);
+          const x = rejectFn(this._value);
           console.log(`${this.count} rejectFn的x = ${x}`)
           console.log(`${this.count} x是Promise吗 ？ ${x instanceof MyPromise ? '是，继续将(resolve, reject)放入x的then' : '否,直接reject(x)'}`)
-          x instanceof MyPromise ? x.then(resolve, reject) : reject(x);
+          resolvePromise(newPromise, x, resolve, reject)
         } catch (error) {
           reject(error)
         }
@@ -125,14 +117,15 @@ class MyPromise {
         // 当状态已变更，直接执行回调
         case FULL_FILLED:
           console.log(`${this.count}状态已变更为FULL_FILLED 将this._value = ${this._value}放入fullFillFn执行`)
-          fullFillFn(this._value);
+          fullFillFn();
           break;
         case REJECTED:
           console.log(`${this.count}状态已变更为REJECTED 将this._value = ${this._value}放入rejectedFn执行`)
-          rejectedFn(this._value);
+          rejectedFn();
           break;
       }
     })
+    return newPromise
   }
 }
 
