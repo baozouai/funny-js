@@ -3,7 +3,7 @@
  * @Author: Moriaty
  * @Date: 2021-11-24 08:22:46
  * @Last modified by: Moriaty
- * @LastEditTime: 2021-11-24 22:08:46
+ * @LastEditTime: 2021-11-24 22:42:16
  */
 function jsonStringify(data) {
   if (isCycle(data)) throw new TypeError('Converting circular structure to JSON');
@@ -26,7 +26,7 @@ function jsonStringify(data) {
 
     const result = [];
     Object.entries(data).forEach(([key, value]) => {
-      if (typeof key !== 'symbol' && !isUndefinedOrFunctionOrSymbol(value)) {
+      if (!isUndefinedOrFunctionOrSymbol(value)) {
         result.push(`"${key}":${jsonStringify(value)}`);
       }
     })
@@ -65,13 +65,13 @@ function getExactType(data) {
 }
 
 // 1. 测试一下基本输出
-console.log(jsonstringify(undefined)) // undefined 
-console.log(jsonstringify(() => { })) // undefined
-console.log(jsonstringify(Symbol('baozou'))) // undefined
-console.log(jsonstringify((NaN))) // null
-console.log(jsonstringify((Infinity))) // null
-console.log(jsonstringify((null))) // null
-console.log(jsonstringify({
+console.log(jsonStringify(undefined)) // undefined 
+console.log(jsonStringify(() => { })) // undefined
+console.log(jsonStringify(Symbol('baozou'))) // undefined
+console.log(jsonStringify((NaN))) // null
+console.log(jsonStringify((Infinity))) // null
+console.log(jsonStringify((null))) // null
+console.log(jsonStringify({
   name: 'baozou',
   toJSON() {
     return {
@@ -83,30 +83,30 @@ console.log(jsonstringify({
 // {"name":"baozou2","sex":"boy"}
 
 // 2. 和原生的JSON.stringify转换进行比较
-console.log(jsonstringify(null) === JSON.stringify(null));
+console.log(jsonStringify(null) === JSON.stringify(null));
 // true
-console.log(jsonstringify(undefined) === JSON.stringify(undefined));
+console.log(jsonStringify(undefined) === JSON.stringify(undefined));
 // true
-console.log(jsonstringify(false) === JSON.stringify(false));
+console.log(jsonStringify(false) === JSON.stringify(false));
 // true
-console.log(jsonstringify(NaN) === JSON.stringify(NaN));
+console.log(jsonStringify(NaN) === JSON.stringify(NaN));
 // true
-console.log(jsonstringify(Infinity) === JSON.stringify(Infinity));
+console.log(jsonStringify(Infinity) === JSON.stringify(Infinity));
 // true
 let str = "baozou";
-console.log(jsonstringify(str) === JSON.stringify(str));
+console.log(jsonStringify(str) === JSON.stringify(str));
 // true
 let reg = new RegExp("\w");
-console.log(jsonstringify(reg) === JSON.stringify(reg));
+console.log(jsonStringify(reg) === JSON.stringify(reg));
 // true
 let date = new Date();
-console.log(jsonstringify(date) === JSON.stringify(date));
+console.log(jsonStringify(date) === JSON.stringify(date));
 // true
 let sym = Symbol('baozou');
-console.log(jsonstringify(sym) === JSON.stringify(sym));
+console.log(jsonStringify(sym) === JSON.stringify(sym));
 // true
 let array = [1, 2, 3];
-console.log(jsonstringify(array) === JSON.stringify(array));
+console.log(jsonStringify(array) === JSON.stringify(array));
 // true
 let obj = {
   name: 'baozou',
@@ -130,9 +130,9 @@ let obj = {
     number: new Number(1),
   }
 }
-console.log(jsonstringify(obj) === JSON.stringify(obj)) 
+console.log(jsonStringify(obj) === JSON.stringify(obj)) 
 // true
-console.log((jsonstringify(obj)))
+console.log((jsonStringify(obj)))
 // {"name":"baozou","age":18,"attr":["coding",123],"date":"2021-10-06T14:59:58.306Z","info":{"age":16,"intro":{"job":null}},"pakingObj":{"boolean":false,"string":"baozou","number":1}}
 console.log(JSON.stringify(obj))
 // {"name":"baozou","age":18,"attr":["coding",123],"date":"2021-10-06T14:59:58.306Z","info":{"age":16,"intro":{"job":null}},"pakingObj":{"boolean":false,"string":"baozou","number":1}}
@@ -151,7 +151,7 @@ Object.defineProperties(enumerableObj, {
   },
 })
 
-console.log(jsonstringify(enumerableObj))
+console.log(jsonStringify(enumerableObj))
 // {"name":"baozou"}
 
 // 4. 测试循环引用和Bigint
@@ -160,7 +160,7 @@ let obj1 = { a: 'aa' }
 let obj2 = { name: 'baozou', a: obj1, b: obj1 }
 obj2.obj = obj2
 
-console.log(jsonstringify(obj2))
+console.log(jsonStringify(obj2))
 // TypeError: Converting circular structure to JSON
 console.log(jsonStringify(BigInt(1)))
 // TypeError: Do not know how to serialize a BigInt

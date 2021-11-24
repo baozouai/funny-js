@@ -3,7 +3,7 @@
  * @Author: Moriaty
  * @Date: 2020-09-21 22:31:52
  * @Last modified by: Moriaty
- * @LastEditTime: 2020-09-25 16:11:23
+ * @LastEditTime: 2021-11-24 23:01:31
  */
 /**
  * @description: 版本1
@@ -33,19 +33,29 @@ test(obj);
 /**
  * @description: 版本2
  */
-function deepClone(obj) {
-  function isObject(obj) {
-    return obj !== null && ['object', 'function'].includes(typeof obj);
+function deepClone(obj, cache = new Map()) {
+  function isObject(data) {
+    return data && typeof data === 'object';
   }
-  if (!isObject(obj)) {
-    throw new TypeError('obj must be an object!');
+
+  if (isObject(obj)) {
+    if (cache.has(obj)) return cache.get([obj]);
+
+    const targetObject = Array.isArray(obj) ? []: {};
+    cache.set(obj, targetObject);
+    const propertyNames = Object.getOwnPropertyNames(obj);
+    const propertySymbols = Object.getOwnPropertySymbols(obj);
+
+    for (let key of [...propertyNames, ...propertySymbols]) {
+      const value = obj[key];
+      targetObject[key] = isObject(value) ? deepClone(value, cache): value;
+    }
+    
+    return targetObject;
   }
-  const newObject = Array.isArray(obj) ? [...obj] : { ...obj };
-  Reflect.ownKeys(newObject).forEach(key => {
-    newObject[key] = isObject(obj[key]) ? deepClone(obj[key]) : obj[key];
-  })
-  return newObject;
-};
+
+  return obj;
+}
 
 const obj1 = {
   a: 1,
