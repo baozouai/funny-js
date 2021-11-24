@@ -35,4 +35,5 @@
 |    [继承(构造函数继承)](./inherit/constructor-inherit.js)     |
 |    [继承(组合式继承)](./inherit/combination-inherit.js)     |
 |    [继承(寄生组合式继承)](./inherit/parasitic-combination-inherit.js)     |
+|    [JSON.stringify](./jsonstringify/index.js)     |
 
